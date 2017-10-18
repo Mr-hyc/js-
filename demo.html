@@ -2,60 +2,90 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>瀑布流布局代码</title>
+    <title>js原生瀑布流</title>
 </head>
 <style type="text/css" media="screen">
-    *{
-        margin:0;
-        padding:0;
-    }
-    div{
-        width: 200px;
-        background: #ccc;
-        position: absolute;
-        transition:0.5s;
-    }
+    *{margin:0;padding:0;list-style: none}
+    body{overflow-y:scroll;}
+    .container{width:100%;position: relative;}
+    #Box>li{width:200px;display:inline-block;position:absolute;transition:0.8s;}
+    #Box>li>img{width: 100%;}
 </style>
 <body>
+    <div class="container"><ul id="Box"></ul></div>
     <script type="text/javascript" charset="utf-8">
-        createDiv();
-        //创建div函数
-        function createDiv(){
-            for (var i = 1; i <= 40; i++) {                            //循环创建40个div
-                var Div=document.createElement('div');      //在dom创建div
-                var DivH=Math.floor(Math.random()*300+50);   //产生50~300的随机数用作div的高度
-                Div.style.height=DivH+'px';
-                Div.innerHTML=i;                             //把产生的高度赋值给div
-                document.body.appendChild(Div);                     //把创建的div追加到body元素中
-            };
-            arrangeDiv();
+        var Box= document.getElementById('Box');
+        var argum=1,loadNum = 10;
+        getImgUrl();
+
+        //ajax后台请求图片函数
+        function getImgUrl(){
+            var xmlhttp;
+            if (window.XMLHttpRequest) {
+                //IE7+,Firefox,chrome ,Opera,Safari
+                xmlhttp=new XMLHttpRequest();
+            }else{
+                //IE6，IE5 浏览器执行代码
+                xmlhttp=new ActiveXObject('Microsoft.XMLHTTP');
+            }
+            xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+                    //把解析json字符串
+                    if (xmlhttp.responseText==1) {
+                        alert('图片全部已经加载完毕');
+                    }else{
+                        var obj = JSON.parse(xmlhttp.responseText); 
+                        console.log(obj);
+                        //for in 遍历数组
+                        for (var i in obj){  
+                            var Li=document.createElement('li');
+                            var Img=document.createElement('img');
+                            Box.appendChild(Li);
+                            Li.appendChild(Img);
+                            Img.setAttribute('src',obj[i].imgUrl);
+                            Li.style.display = 'none';
+                            Li.style.top = window.screen.height + document.body.scrollTop + 'px';
+                            Li.style.left = '50%';
+                            Img.onload=arrangeDiv;
+                        } 
+                        //等图片全部加载完成后执行下面的函数。
+                       
+                    }
+                    
+                };
+            }
+            xmlhttp.open('GET','http://mr_cc.com/pubuliu/demo.php?page='+argum+'&number='+35,true);
+            xmlhttp.send();
         }
-        //div排列函数
+
+        //判断浏览器的宽度
         function arrangeDiv(){
-            console.log(num);
-            var AllDiv=document.getElementsByTagName('div');   //获取页面创建所有的div
-            var windowWidth=document.body.clientWidth;    //获取浏览器的可是宽度
-            var num=Math.floor(windowWidth/210);   //通过窗口的宽度÷每个div的宽度得到一行所能容纳的个数       210：div的宽度200+div的边距10）。Math.floor：取整
-            var cenShow=(windowWidth-num*210)/2   //让整个div居中显示（可视宽度-div总宽度）÷2
-            var arrayH=[]    //这里我们定义一个数组用来存储div的高度
-            for (var i = 0; i <AllDiv.length; i++) {    //通过循环让每一个div都输出
-                if (i<num) {         //如果i<num说明这是第一行
-                    AllDiv[i].style.left=cenShow+i*200+10*i+'px';     //通过i值得增加，给第一排的div赋值left值
-                    AllDiv[i].style.top='0px';    //因为是第一排，所以他们的高度都为0；
-                    arrayH[i]=AllDiv[i].offsetHeight        //将第一行div的高度存储到数组中
-                    //console.log(arrayH)       //通过打印可以看出每一个div高度具体值
+            var AllLI=Box.getElementsByTagName("li");
+            var windowW=document.body.clientWidth;
+            var num=Math.floor(windowW/210);
+            var cen=(windowW-num*210)/2;
+            var arrH=[];
+            for (var i = 0; i < AllLI.length; i++) {
+                AllLI[i].style.display = 'block';
+                var liH=AllLI[i].offsetHeight;
+                if (i<num) {
+                    AllLI[i].style.left=cen+200*i+10*i+'px';
+                    AllLI[i].style.top='0px';
+                    arrH[i]=liH;
                 }else{
-                    var minKey=findMinKey(arrayH);          //把健值赋值给minKey变量
-                    AllDiv[i].style.top=arrayH[minKey]+10+'px';   
-                    AllDiv[i].style.left=cenShow+200*minKey+10*minKey+'px';
-                    arrayH[minKey]+=AllDiv[i].offsetHeight +10;      //将新的div高度存放到arrayH数组中
+                    var minKey=getMinKey(arrH);
+                    AllLI[i].style.top=arrH[minKey]+10+'px';
+                    AllLI[i].style.left=cen+200*minKey+10*minKey+'px';
+                    arrH[minKey] += AllLI[i].offsetHeight + 10; 
                 }
             };
         }
-        //查询第二排第一个位置对应上一排的键
-        function findMinKey(Arr){
-            var minNum=Math.min.apply(null,Arr);      //取出上一排数组中最小的那个值 打印查看效果
-            var k=0;                                                    //获取数组中这个最小值对应的健
+
+
+        //获取前一行高度最小的值对应的键
+        function getMinKey(Arr){
+            var minNum=Math.min.apply(null,Arr);      
+            var k=0;                                                    
             for(k in Arr){
                 if (Arr[k] == minNum) {
                     return k;
@@ -64,17 +94,19 @@
             }
         }
 
-        //当窗口发生变化时调用
-        window.onresize = function(){
+        //窗口变化时
+        window.onresize=function(){
             arrangeDiv();
         }
-        //当滚动条滑动到指定位置时，执行在加载
-        window.onscroll = function(){
-            var windowHeight=document.documentElement.clientHeight;      //获取页面可视高度
-            var scrollTop=document.documentElement.scrollTop || document.body.scrollTop;     //获取页面滚动条的滚动高度
-            var scrollHeight=document.body.scrollHeight   //获取页面滚动条的总高度
-            if (windowHeight+scrollTop >= scrollHeight-50) {     //如果页面滑动到底部 再次执行创建
-                createDiv();
+
+        //当滑动到底部的时候，再次加载
+        window.onscroll=function(){
+             var windowHeight=document.documentElement.clientHeight || document.body.clientHeight;  
+             var scrollTop=document.documentElement.scrollTop || document.body.scrollTop;    
+             var scrollHeight=document.body.scrollHeight   
+            if (windowHeight+scrollTop >= scrollHeight) {   
+                    argum++;
+                    getImgUrl();
             };
         }
     </script>
